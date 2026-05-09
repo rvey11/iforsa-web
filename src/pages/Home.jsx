@@ -7,7 +7,7 @@ import Hero from '../components/Hero';
 
 const CATEGORIES = ['Tout', 'Trending', 'Emploi', 'ANAPEC', 'Alwadifa', 'Immigration', 'Sport', 'Stage', 'France'];
 
-const Home = ({ posts, onContactSubmit }) => {
+const Home = ({ posts, onContactSubmit, isFirebaseConfigured }) => {
   const [activeCat, setActiveCat] = useState('Tout');
   const [searchTerm, setSearchTerm] = useState('');
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
@@ -62,7 +62,7 @@ const Home = ({ posts, onContactSubmit }) => {
   const trendingCount = posts.filter((post) => post.trending).length;
   const totalJobs = posts.length;
 
-  const handleContactSubmit = (event) => {
+  const handleContactSubmit = async (event) => {
     event.preventDefault();
 
     if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
@@ -70,9 +70,13 @@ const Home = ({ posts, onContactSubmit }) => {
       return;
     }
 
-    onContactSubmit(contactForm);
-    setContactForm({ name: '', email: '', message: '' });
-    setContactStatus('Message enregistre dans cette version demo. Pour recevoir les vrais messages visiteurs, il faut connecter une base de donnees.');
+    try {
+      const status = await onContactSubmit(contactForm);
+      setContactForm({ name: '', email: '', message: '' });
+      setContactStatus(status);
+    } catch {
+      setContactStatus("Le message n'a pas pu etre envoye. Verifie la configuration Firebase.");
+    }
   };
 
   return (
@@ -211,7 +215,9 @@ const Home = ({ posts, onContactSubmit }) => {
         <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 md:p-10 shadow-sm grid lg:grid-cols-[0.9fr_1.1fr] gap-8">
           <div className="flex flex-col justify-center">
             <h2 className="text-3xl font-black text-slate-900 mb-2">Contact</h2>
-            <p className="text-slate-600 leading-relaxed mb-6">Une question, une offre a publier, ou une correction a demander ? Le formulaire est pret; il faudra connecter une base de donnees pour recevoir les vrais messages visiteurs dans l'admin.</p>
+            <p className="text-slate-600 leading-relaxed mb-6">
+              Une question, une offre a publier, ou une correction a demander ? {isFirebaseConfigured ? "Le message arrivera directement dans l'admin." : "Le formulaire est pret; ajoute Firebase pour recevoir les vrais messages visiteurs dans l'admin."}
+            </p>
             <a href="mailto:contact@iforsa.ma" className="inline-flex items-center gap-3 text-emerald-700 font-black">
               <Mail size={18} />
               contact@iforsa.ma

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ViralPoster from '../components/ViralPosterGenerator';
+import { archiveContactMessage, signInAdmin, signOutAdmin, subscribeContactMessages } from '../services/firebase';
 
 const emptyForm = {
   title: '',
@@ -21,11 +22,25 @@ const imageSuggestions = {
   Stage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200'
 };
 
-const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
+const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseConfigured }) => {
   const [auth, setAuth] = useState(false);
   const [pass, setPass] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !adminUser) {
+      return undefined;
+    }
+
+    return subscribeContactMessages(
+      setMessages,
+      (error) => {
+        console.error('Could not load contact messages from Firebase:', error);
+      }
+    );
+  }, [adminUser, isFirebaseConfigured, setMessages]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -113,8 +128,25 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
     }
   };
 
-  const handleDeleteMessage = (messageId) => {
+  const handleDeleteMessage = async (messageId) => {
+    if (isFirebaseConfigured) {
+      await archiveContactMessage(messageId);
+      return;
+    }
+
     setMessages(messages.filter((message) => message.id !== messageId));
+  };
+
+  const handleGoogleLogin = async () => {
+    const result = await signInAdmin();
+    setAdminUser(result.user);
+    setAuth(true);
+  };
+
+  const handleLogout = async () => {
+    await signOutAdmin();
+    setAdminUser(null);
+    setAuth(false);
   };
 
   if (!auth) {
@@ -135,6 +167,14 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
           >
             Login
           </button>
+          {isFirebaseConfigured && (
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full bg-emerald-600 text-white p-4 rounded-xl font-bold mt-3"
+            >
+              Login with Google
+            </button>
+          )}
         </div>
       </div>
     );
@@ -146,12 +186,20 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
         <div>
           <p className="text-sm font-black text-emerald-600 uppercase tracking-widest">Admin iForsa</p>
           <h1 className="text-4xl font-black">{editingId ? 'Modifier article' : 'Nouvel article'}</h1>
+          {adminUser && <p className="text-sm font-bold text-slate-500 mt-2">{adminUser.email}</p>}
         </div>
-        {editingId && (
-          <button onClick={resetForm} className="self-start sm:self-auto px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 transition">
-            Annuler
-          </button>
-        )}
+        <div className="flex gap-2">
+          {editingId && (
+            <button onClick={resetForm} className="self-start sm:self-auto px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 transition">
+              Annuler
+            </button>
+          )}
+          {isFirebaseConfigured && (
+            <button onClick={handleLogout} className="self-start sm:self-auto px-5 py-3 rounded-xl bg-slate-900 text-white font-black hover:bg-slate-700 transition">
+              Logout
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -190,6 +238,11 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
           <h2 className="text-3xl font-black">Messages contact</h2>
           <span className="text-sm font-bold text-slate-500">{messages.length} messages</span>
         </div>
+        {!isFirebaseConfigured && (
+          <p className="mb-4 text-sm font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            Firebase n'est pas encore configure. Les messages sont seulement visibles dans ce navigateur.
+          </p>
+        )}
 
         {messages.length > 0 ? (
           <div className="space-y-3">

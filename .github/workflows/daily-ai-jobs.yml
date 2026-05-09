@@ -1,0 +1,44 @@
+name: Daily AI job finder
+
+on:
+  schedule:
+    - cron: '20 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  find-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Find and add opportunity
+        run: npm run ai:find-jobs
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.2' }}
+
+      - name: Commit changes
+        run: |
+          if [ -z "$(git status --short)" ]; then
+            echo "No new opportunity to commit."
+            exit 0
+          fi
+          git config user.name "iforsa-ai-bot"
+          git config user.email "actions@github.com"
+          git add src/data/mockData.js
+          git commit -m "Add daily AI job opportunity"
+          git push

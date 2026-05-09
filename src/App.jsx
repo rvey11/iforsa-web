@@ -10,6 +10,7 @@ import AdminPanel from './pages/AdminPanel';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { INITIAL_POSTS } from './data/mockData';
+import { addContactMessage, isFirebaseConfigured } from './services/firebase';
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
@@ -70,7 +71,12 @@ function App() {
     localStorage.setItem('iforsa_messages', JSON.stringify(messages));
   }, [messages]);
 
-  const handleContactSubmit = (message) => {
+  const handleContactSubmit = async (message) => {
+    if (isFirebaseConfigured) {
+      await addContactMessage(message);
+      return 'Message envoye. Il apparaitra dans le panneau admin.';
+    }
+
     setMessages((currentMessages) => [
       {
         ...message,
@@ -79,6 +85,7 @@ function App() {
       },
       ...currentMessages
     ]);
+    return 'Message enregistre dans cette version demo. Pour recevoir les vrais messages visiteurs, ajoute Firebase.';
   };
 
   return (
@@ -89,7 +96,7 @@ function App() {
         
         <Routes>
           {/* Main Home Page */}
-          <Route path="/" element={<Home posts={posts} onContactSubmit={handleContactSubmit} />} />
+          <Route path="/" element={<Home posts={posts} onContactSubmit={handleContactSubmit} isFirebaseConfigured={isFirebaseConfigured} />} />
 
           {/* Individual Article/Job Page */}
           <Route path="/opportunity/:id" element={<ArticleDetail posts={posts} />} />
@@ -97,11 +104,11 @@ function App() {
           {/* Hidden Admin Dashboard */}
           <Route 
             path="/admin-panel-4587" 
-            element={<AdminPanel posts={posts} setPosts={setPosts} messages={messages} setMessages={setMessages} />} 
+            element={<AdminPanel posts={posts} setPosts={setPosts} messages={messages} setMessages={setMessages} isFirebaseConfigured={isFirebaseConfigured} />} 
           />
           
           {/* Redirect to Home if path doesn't exist */}
-          <Route path="*" element={<Home posts={posts} />} />
+          <Route path="*" element={<Home posts={posts} onContactSubmit={handleContactSubmit} isFirebaseConfigured={isFirebaseConfigured} />} />
         </Routes>
 
         <Footer />

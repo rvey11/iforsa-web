@@ -10,6 +10,18 @@ const ArticleDetail = ({ posts }) => {
   const post = posts.find(p => p.id === parseInt(id));
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      await navigator.share({ title: post.title, url: shareUrl });
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareUrl);
+    alert('Lien copie !');
+  };
+
   if (!post) {
     return (
       <div className="max-w-4xl mx-auto px-4 pt-24 pb-12">
@@ -88,6 +100,7 @@ const ArticleDetail = ({ posts }) => {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
               className="h-12 w-12 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition"
             >
               <Share2 size={20} />

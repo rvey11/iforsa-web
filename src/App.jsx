@@ -8,6 +8,7 @@ import AdminPanel from './pages/AdminPanel';
 
 // Components
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import { INITIAL_POSTS } from './data/mockData';
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
@@ -72,7 +73,7 @@ function App() {
           <Route path="*" element={<Home posts={posts} />} />
         </Routes>
 
-        {/* Footer could be added here later */}
+        <Footer />
       </div>
     </Router>
   );

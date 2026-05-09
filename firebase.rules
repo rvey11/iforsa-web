@@ -10,8 +10,7 @@ service cloud.firestore {
         && request.resource.data.email.size() <= 160
         && request.resource.data.message.size() <= 3000;
 
-      allow read, delete: if request.auth != null
-        && request.auth.token.email == "anothereeey@gmail.com";
+      allow read, delete: if request.auth != null;
     }
   }
 }

@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
+  signInAnonymously,
   signOut
 } from 'firebase/auth';
 import {
@@ -37,7 +36,7 @@ export const signInAdmin = () => {
     return Promise.reject(new Error('Firebase is not configured.'));
   }
 
-  return signInWithPopup(auth, new GoogleAuthProvider());
+  return signInAnonymously(auth);
 };
 
 export const signOutAdmin = () => {

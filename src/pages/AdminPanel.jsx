@@ -27,10 +27,9 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseCon
   const [pass, setPass] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
-  const [adminUser, setAdminUser] = useState(null);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !adminUser) {
+    if (!isFirebaseConfigured || !auth) {
       return undefined;
     }
 
@@ -40,7 +39,7 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseCon
         console.error('Could not load contact messages from Firebase:', error);
       }
     );
-  }, [adminUser, isFirebaseConfigured, setMessages]);
+  }, [auth, isFirebaseConfigured, setMessages]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -137,16 +136,21 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseCon
     setMessages(messages.filter((message) => message.id !== messageId));
   };
 
-  const handleGoogleLogin = async () => {
-    const result = await signInAdmin();
-    setAdminUser(result.user);
-    setAuth(true);
-  };
-
   const handleLogout = async () => {
     await signOutAdmin();
-    setAdminUser(null);
     setAuth(false);
+  };
+
+  const handleLogin = async () => {
+    if (pass !== 'forsa2026') {
+      return;
+    }
+
+    if (isFirebaseConfigured) {
+      await signInAdmin();
+    }
+
+    setAuth(true);
   };
 
   if (!auth) {
@@ -162,19 +166,11 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseCon
             onChange={(e) => setPass(e.target.value)}
           />
           <button
-            onClick={() => pass === 'forsa2026' && setAuth(true)}
+            onClick={handleLogin}
             className="w-full bg-black text-white p-4 rounded-xl font-bold"
           >
             Login
           </button>
-          {isFirebaseConfigured && (
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full bg-emerald-600 text-white p-4 rounded-xl font-bold mt-3"
-            >
-              Login with Google
-            </button>
-          )}
         </div>
       </div>
     );
@@ -186,7 +182,6 @@ const AdminPanel = ({ posts, setPosts, messages = [], setMessages, isFirebaseCon
         <div>
           <p className="text-sm font-black text-emerald-600 uppercase tracking-widest">Admin iForsa</p>
           <h1 className="text-4xl font-black">{editingId ? 'Modifier article' : 'Nouvel article'}</h1>
-          {adminUser && <p className="text-sm font-bold text-slate-500 mt-2">{adminUser.email}</p>}
         </div>
         <div className="flex gap-2">
           {editingId && (

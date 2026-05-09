@@ -5,7 +5,7 @@
 1. Create a Firebase project.
 2. Add a Web app in Firebase project settings.
 3. Enable Firestore Database.
-4. Enable Authentication > Sign-in method > Google.
+4. Enable Authentication > Sign-in method > Anonymous.
 5. Add this authorized domain in Firebase Auth:
    `rvey11.github.io`
 6. Add the rules from `firebase.rules` to Firestore Rules and publish.
@@ -17,7 +17,7 @@
    - `VITE_FIREBASE_MESSAGING_SENDER_ID`
    - `VITE_FIREBASE_APP_ID`
 
-Only `anothereeey@gmail.com` can read/delete contact messages with these rules.
+The admin panel signs in anonymously after your admin password is entered. This removes Google sign-in, but it is lighter security than a real backend admin session.
 
 ## Daily AI job finder
 

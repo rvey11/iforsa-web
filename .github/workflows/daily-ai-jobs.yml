@@ -2,7 +2,7 @@ name: Daily AI job finder
 
 on:
   schedule:
-    - cron: '00 20 * * *'
+    - cron: '40 20 * * *'
   workflow_dispatch:
 
 permissions:

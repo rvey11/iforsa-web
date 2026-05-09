@@ -11,7 +11,17 @@ const emptyForm = {
   link: ''
 };
 
-const AdminPanel = ({ posts, setPosts }) => {
+const imageSuggestions = {
+  Emploi: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200',
+  ANAPEC: 'https://images.unsplash.com/photo-1521791055366-0d553872125f?q=80&w=1200',
+  France: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1200',
+  Alwadifa: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=1200',
+  Immigration: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?q=80&w=1200',
+  Sport: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200',
+  Stage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200'
+};
+
+const AdminPanel = ({ posts, setPosts, messages = [], setMessages }) => {
   const [auth, setAuth] = useState(false);
   const [pass, setPass] = useState('');
   const [form, setForm] = useState(emptyForm);
@@ -74,6 +84,21 @@ const AdminPanel = ({ posts, setPosts }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleDraftHelp = () => {
+    const locationText = form.location || 'Maroc';
+    const categoryText = form.category || 'Emploi';
+    const titleBase = form.title || `Nouvelle opportunite ${categoryText} a ${locationText}`;
+
+    setForm({
+      ...form,
+      title: titleBase.includes('2026') ? titleBase : `${titleBase} - Postulez maintenant`,
+      image: form.image || imageSuggestions[categoryText] || imageSuggestions.Emploi,
+      description: form.description || `Une nouvelle opportunite ${categoryText.toLowerCase()} est disponible a ${locationText}. Cette annonce s'adresse aux candidats motives qui souhaitent rejoindre une structure serieuse et developper leur carriere.`,
+      requirements: form.requirements || "Profil motive, bon sens de l'organisation, capacite d'apprentissage, respect des delais et envie d'evoluer dans un environnement professionnel.",
+      link: form.link || '#'
+    });
+  };
+
   const handleDelete = (postId, postTitle) => {
     const confirmed = window.confirm(`Supprimer "${postTitle}" ?`);
 
@@ -86,6 +111,10 @@ const AdminPanel = ({ posts, setPosts }) => {
     if (editingId === postId) {
       resetForm();
     }
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    setMessages(messages.filter((message) => message.id !== messageId));
   };
 
   if (!auth) {
@@ -142,6 +171,9 @@ const AdminPanel = ({ posts, setPosts }) => {
           <input value={form.link} className="w-full p-4 border rounded-xl" placeholder="Lien de candidature" onChange={(e) => setForm({ ...form, link: e.target.value })} />
           <textarea value={form.description} className="w-full p-4 border rounded-xl h-32" placeholder="Description" onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <textarea value={form.requirements} className="w-full p-4 border rounded-xl h-28" placeholder="Criteres / profil recherche" onChange={(e) => setForm({ ...form, requirements: e.target.value })} />
+          <button onClick={handleDraftHelp} className="w-full bg-slate-900 text-white p-4 rounded-xl font-black hover:bg-slate-700 transition">
+            AIDE IA: AMELIORER LE TEXTE + IMAGE
+          </button>
           <button onClick={handleSubmit} className="w-full bg-emerald-500 text-white p-4 rounded-xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition">
             {editingId ? 'ENREGISTRER LES MODIFICATIONS' : 'PUBLIER SUR IFORSA'}
           </button>
@@ -152,6 +184,37 @@ const AdminPanel = ({ posts, setPosts }) => {
           <ViralPoster title={form.title || "Titre de l'offre"} image={form.image || 'https://images.unsplash.com/photo-1454165833767-027ffea9e77b?q=80&w=800'} category={form.category} />
         </div>
       </div>
+
+      <section className="mt-16">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <h2 className="text-3xl font-black">Messages contact</h2>
+          <span className="text-sm font-bold text-slate-500">{messages.length} messages</span>
+        </div>
+
+        {messages.length > 0 ? (
+          <div className="space-y-3">
+            {messages.map((message) => (
+              <div key={message.id} className="border rounded-xl p-4 bg-white">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div>
+                    <p className="font-black text-slate-900">{message.name}</p>
+                    <a href={`mailto:${message.email}`} className="text-sm font-bold text-emerald-700">{message.email}</a>
+                    <p className="text-xs text-slate-400 mt-1">{message.date}</p>
+                  </div>
+                  <button onClick={() => handleDeleteMessage(message.id)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-black transition">
+                    Archiver
+                  </button>
+                </div>
+                <p className="text-slate-700 leading-relaxed mt-4 whitespace-pre-wrap">{message.message}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border rounded-xl p-8 bg-slate-50 text-center">
+            <p className="font-bold text-slate-500">Aucun message pour le moment.</p>
+          </div>
+        )}
+      </section>
 
       <section className="mt-16">
         <div className="flex items-center justify-between gap-4 mb-6">

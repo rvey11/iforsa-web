@@ -40,15 +40,46 @@ const loadInitialPosts = () => {
   }
 };
 
+const loadInitialMessages = () => {
+  const savedMessages = localStorage.getItem('iforsa_messages');
+
+  if (!savedMessages) {
+    return [];
+  }
+
+  try {
+    const parsedMessages = JSON.parse(savedMessages);
+    return Array.isArray(parsedMessages) ? parsedMessages : [];
+  } catch {
+    return [];
+  }
+};
+
 function App() {
   // State to hold all posts. 
   // It tries to load from LocalStorage first, otherwise uses INITIAL_POSTS
   const [posts, setPosts] = useState(loadInitialPosts);
+  const [messages, setMessages] = useState(loadInitialMessages);
 
   // Automatically save to LocalStorage whenever the 'posts' array changes
   useEffect(() => {
     localStorage.setItem('iforsa_posts', JSON.stringify(posts));
   }, [posts]);
+
+  useEffect(() => {
+    localStorage.setItem('iforsa_messages', JSON.stringify(messages));
+  }, [messages]);
+
+  const handleContactSubmit = (message) => {
+    setMessages((currentMessages) => [
+      {
+        ...message,
+        id: Date.now(),
+        date: new Date().toLocaleString()
+      },
+      ...currentMessages
+    ]);
+  };
 
   return (
     <Router basename={routerBasename}>
@@ -58,7 +89,7 @@ function App() {
         
         <Routes>
           {/* Main Home Page */}
-          <Route path="/" element={<Home posts={posts} />} />
+          <Route path="/" element={<Home posts={posts} onContactSubmit={handleContactSubmit} />} />
 
           {/* Individual Article/Job Page */}
           <Route path="/opportunity/:id" element={<ArticleDetail posts={posts} />} />
@@ -66,7 +97,7 @@ function App() {
           {/* Hidden Admin Dashboard */}
           <Route 
             path="/admin-panel-4587" 
-            element={<AdminPanel posts={posts} setPosts={setPosts} />} 
+            element={<AdminPanel posts={posts} setPosts={setPosts} messages={messages} setMessages={setMessages} />} 
           />
           
           {/* Redirect to Home if path doesn't exist */}

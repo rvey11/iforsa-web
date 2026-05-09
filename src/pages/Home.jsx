@@ -7,9 +7,11 @@ import Hero from '../components/Hero';
 
 const CATEGORIES = ['Tout', 'Trending', 'Emploi', 'ANAPEC', 'Alwadifa', 'Immigration', 'Sport', 'Stage', 'France'];
 
-const Home = ({ posts }) => {
+const Home = ({ posts, onContactSubmit }) => {
   const [activeCat, setActiveCat] = useState('Tout');
   const [searchTerm, setSearchTerm] = useState('');
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactStatus, setContactStatus] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -59,6 +61,19 @@ const Home = ({ posts }) => {
 
   const trendingCount = posts.filter((post) => post.trending).length;
   const totalJobs = posts.length;
+
+  const handleContactSubmit = (event) => {
+    event.preventDefault();
+
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
+      setContactStatus('Remplis tous les champs avant envoyer.');
+      return;
+    }
+
+    onContactSubmit(contactForm);
+    setContactForm({ name: '', email: '', message: '' });
+    setContactStatus('Message enregistre dans cette version demo. Pour recevoir les vrais messages visiteurs, il faut connecter une base de donnees.');
+  };
 
   return (
     <main className="pb-12">
@@ -193,15 +208,44 @@ const Home = ({ posts }) => {
       </section>
 
       <section id="contact" className="max-w-7xl mx-auto px-4 mt-16 scroll-mt-24">
-        <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 md:p-10 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
+        <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 md:p-10 shadow-sm grid lg:grid-cols-[0.9fr_1.1fr] gap-8">
+          <div className="flex flex-col justify-center">
             <h2 className="text-3xl font-black text-slate-900 mb-2">Contact</h2>
-            <p className="text-slate-600">Une question, une offre a publier, ou une correction a demander ?</p>
+            <p className="text-slate-600 leading-relaxed mb-6">Une question, une offre a publier, ou une correction a demander ? Le formulaire est pret; il faudra connecter une base de donnees pour recevoir les vrais messages visiteurs dans l'admin.</p>
+            <a href="mailto:contact@iforsa.ma" className="inline-flex items-center gap-3 text-emerald-700 font-black">
+              <Mail size={18} />
+              contact@iforsa.ma
+            </a>
           </div>
-          <a href="mailto:contact@iforsa.ma" className="inline-flex items-center justify-center gap-3 bg-slate-950 text-white px-7 py-4 rounded-full font-black hover:bg-emerald-700 transition">
-            <Mail size={18} />
-            contact@iforsa.ma
-          </a>
+
+          <form onSubmit={handleContactSubmit} className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <input
+                value={contactForm.name}
+                onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                className="w-full p-4 border rounded-xl focus:outline-none focus:border-emerald-500"
+                placeholder="Nom"
+              />
+              <input
+                type="email"
+                value={contactForm.email}
+                onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                className="w-full p-4 border rounded-xl focus:outline-none focus:border-emerald-500"
+                placeholder="Gmail / Email"
+              />
+            </div>
+            <textarea
+              value={contactForm.message}
+              onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+              className="w-full p-4 border rounded-xl h-32 focus:outline-none focus:border-emerald-500"
+              placeholder="Message"
+            />
+            <button className="inline-flex items-center justify-center gap-3 bg-slate-950 text-white px-7 py-4 rounded-full font-black hover:bg-emerald-700 transition">
+              <Mail size={18} />
+              Envoyer le message
+            </button>
+            {contactStatus && <p className="text-sm font-bold text-emerald-700">{contactStatus}</p>}
+          </form>
         </div>
       </section>
     </main>

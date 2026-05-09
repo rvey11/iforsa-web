@@ -33,13 +33,7 @@ const loadInitialPosts = () => {
       return INITIAL_POSTS;
     }
 
-    const seededIds = new Set(INITIAL_POSTS.map((post) => post.id));
-    const seededTitles = new Set(INITIAL_POSTS.map((post) => post.title));
-    const customPosts = parsedPosts
-      .map(normalizePost)
-      .filter((post) => !seededIds.has(post.id) && !seededTitles.has(post.title));
-
-    return [...INITIAL_POSTS, ...customPosts];
+    return parsedPosts.map(normalizePost);
   } catch {
     return INITIAL_POSTS;
   }

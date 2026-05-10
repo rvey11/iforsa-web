@@ -2,10 +2,10 @@ import fs from 'node:fs/promises';
 
 const DATA_FILE = new URL('../src/data/mockData.js', import.meta.url);
 
-const serpApiKey = process.env.SERPAPI_API_KEY;
-const hfApiKey = process.env.HUGGINGFACE_API_KEY;
+const SERP_API_KEY = process.env.SERPAPI_API_KEY;
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
-if (!serpApiKey || !hfApiKey) {
+if (!SERP_API_KEY || !HF_API_KEY) {
   console.log('Missing SERPAPI_API_KEY or HUGGINGFACE_API_KEY. Skipping.');
   process.exit(0);
 }
@@ -26,7 +26,7 @@ searchUrl.searchParams.set(
 );
 searchUrl.searchParams.set('hl', 'fr');
 searchUrl.searchParams.set('gl', 'ma');
-searchUrl.searchParams.set('api_key', serpApiKey);
+searchUrl.searchParams.set('api_key', SERP_API_KEY);
 
 let searchResponse;
 
@@ -55,6 +55,9 @@ if (!candidates.length) {
   safeExit('No candidates found.');
 }
 
+// --------------------
+// 2. LOAD EXISTING DATA
+// --------------------
 const source = await fs.readFile(DATA_FILE, 'utf8');
 
 const unused = candidates.filter(c => !source.includes(c.link));
@@ -66,7 +69,7 @@ if (!unused.length) {
 const picked = unused[0];
 
 // --------------------
-// 2. PROMPT FOR HF
+// 3. PROMPT
 // --------------------
 const prompt = `
 Return ONLY valid JSON.
@@ -83,27 +86,30 @@ Create a Moroccan job post:
   "link": ""
 }
 
-Use this job:
+Job:
 Title: ${picked.title}
 Snippet: ${picked.snippet}
 Link: ${picked.link}
 `;
 
 // --------------------
-// 3. HUGGING FACE CALL (FIXED)
+// 4. HUGGING FACE CALL (FIXED ENDPOINT)
 // --------------------
 const hfResponse = await fetch(
   'https://api-inference.huggingface.co/models/google/flan-t5-base',
   {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${hfApiKey}`,
+      Authorization: `Bearer ${HF_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       inputs: prompt,
+      options: {
+        wait_for_model: true
+      },
       parameters: {
-        max_new_tokens: 400
+        max_new_tokens: 300
       }
     })
   }
@@ -116,7 +122,9 @@ if (!hfResponse.ok) {
 
 const hfData = await hfResponse.json();
 
-// HF returns different formats depending on model
+// --------------------
+// 5. EXTRACT OUTPUT
+// --------------------
 const raw =
   hfData?.[0]?.generated_text ||
   hfData?.generated_text ||
@@ -124,11 +132,11 @@ const raw =
   '';
 
 if (!raw) {
-  safeExit('HF returned empty response.');
+  safeExit('Empty response from Hugging Face.');
 }
 
 // --------------------
-// 4. PARSE JSON SAFELY
+// 6. PARSE JSON SAFELY
 // --------------------
 let post;
 
@@ -136,11 +144,11 @@ try {
   const match = raw.match(/\{[\s\S]*\}/);
   post = JSON.parse(match ? match[0] : raw);
 } catch {
-  safeExit('Failed to parse JSON from HF output.');
+  safeExit('Failed to parse JSON from model output.');
 }
 
 // --------------------
-// 5. BUILD FINAL POST
+// 7. BUILD FINAL POST
 // --------------------
 const newPost = {
   id: Date.now(),
@@ -162,7 +170,7 @@ const newPost = {
 };
 
 // --------------------
-// 6. SAVE TO FILE
+// 8. SAVE TO FILE
 // --------------------
 const postText = `\n  ${JSON.stringify(newPost, null, 2)},`;
 

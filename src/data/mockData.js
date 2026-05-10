@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778434661014,
+  "title": "Emploi à l'International",
+  "category": "International",
+  "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200",
+  "date": "10 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Retrouvez sur cette page toutes les offres d'emploi et annonces de recrutement à l'International et à l'Etranger. ; L'ANAPEC ouvre 24 recrutements entre le ...",
+  "requirements": "Voir détails sur site officiel",
+  "link": "https://www.dreamjob.ma/emploi-international/"
+},
+  {
   "id": 1778427721306,
   "title": "A la une - Dreamjob.ma",
   "category": "Emploi",

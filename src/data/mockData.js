@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778418990279,
+  "title": "Emploi Public Maroc et Concours",
+  "category": "Emploi Public",
+  "image": "https://www.dreamjob.ma/emploi-public/page/41/",
+  "date": "10 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Retrouvez sur cette page les Offres d'Emploi et Recrutement du Secteur Public au Maroc. Emploi Public, Concours et Résultats des Concours - Dreamjob.ma.",
+  "requirements": "Pas de spécifications de compétences ou d'expérience requises",
+  "link": "https://www.dreamjob.ma/emploi-public/page/41/"
+},
+  {
     id: 1,
     title: "Opportunités en CDI chez Marsa Maroc, postulez dès maintenant",
     category: "Emploi",

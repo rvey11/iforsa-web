@@ -16,7 +16,7 @@ const safeExit = (msg) => {
 };
 
 // --------------------
-// 1. SERPAPI SEARCH
+// 1. GET JOBS (SERPAPI)
 // --------------------
 const searchUrl = new URL('https://serpapi.com/search.json');
 searchUrl.searchParams.set('engine', 'google');
@@ -56,7 +56,7 @@ if (!candidates.length) {
 }
 
 // --------------------
-// 2. LOAD EXISTING DATA
+// 2. CHECK DUPLICATES
 // --------------------
 const source = await fs.readFile(DATA_FILE, 'utf8');
 
@@ -69,12 +69,12 @@ if (!unused.length) {
 const picked = unused[0];
 
 // --------------------
-// 3. GROQ AI GENERATION
+// 3. PROMPT
 // --------------------
 const prompt = `
-Return ONLY valid JSON.
+Create a Moroccan job post.
 
-Create a Moroccan job post:
+Return ONLY valid JSON:
 
 {
   "title": "",
@@ -92,6 +92,9 @@ Snippet: ${picked.snippet}
 Link: ${picked.link}
 `;
 
+// --------------------
+// 4. GROQ API (FIXED)
+// --------------------
 const groqResponse = await fetch(
   'https://api.groq.com/openai/v1/chat/completions',
   {
@@ -102,17 +105,22 @@ const groqResponse = await fetch(
     },
     body: JSON.stringify({
       model: 'llama-3.1-8b-instant',
+
+      // 🔥 THIS IS THE FIX THAT STOPS YOUR ERROR
+      response_format: { type: 'json_object' },
+
       messages: [
         {
           role: 'system',
-          content: 'Return ONLY valid JSON. No markdown. No explanation.'
+          content:
+            'Return ONLY valid JSON. No markdown. No text. No explanation.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.7
+      temperature: 0.3
     })
   }
 );
@@ -124,6 +132,9 @@ if (!groqResponse.ok) {
 
 const data = await groqResponse.json();
 
+// --------------------
+// 5. EXTRACT OUTPUT
+// --------------------
 const raw = data?.choices?.[0]?.message?.content;
 
 if (!raw) {
@@ -131,19 +142,18 @@ if (!raw) {
 }
 
 // --------------------
-// 4. PARSE JSON
+// 6. PARSE JSON SAFELY
 // --------------------
 let post;
 
 try {
-  const match = raw.match(/\{[\s\S]*\}/);
-  post = JSON.parse(match ? match[0] : raw);
+  post = JSON.parse(raw);
 } catch {
-  safeExit('Failed to parse Groq JSON.');
+  safeExit('Groq returned invalid JSON.');
 }
 
 // --------------------
-// 5. BUILD FINAL POST
+// 7. BUILD FINAL POST
 // --------------------
 const newPost = {
   id: Date.now(),
@@ -160,12 +170,12 @@ const newPost = {
   location: post.location || 'Maroc',
   trending: true,
   description: post.description || picked.snippet,
-  requirements: post.requirements || 'Voir détails sur le site officiel',
+  requirements: post.requirements || 'Voir détails sur site officiel',
   link: post.link || picked.link
 };
 
 // --------------------
-// 6. SAVE TO FILE
+// 8. SAVE TO FILE
 // --------------------
 const postText = `\n  ${JSON.stringify(newPost, null, 2)},`;
 

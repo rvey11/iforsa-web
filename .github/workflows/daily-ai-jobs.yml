@@ -2,7 +2,7 @@ name: Daily AI job finder
 
 on:
   schedule:
-    - cron: '00 07 * * *'
+    - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:
@@ -25,22 +25,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Find and add opportunity
+      - name: Run AI job finder
         run: npm run ai:find-jobs
         env:
-          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
-          # إذا كان الكود البرمجي (npm run ai:find-jobs) يعتمد على اسم موديل معين من Hugging Face، 
-          # يمكنك إضافة متغير للموديل هنا أو تركه إذا كان الموديل معرفاً داخل الكود.
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
       - name: Commit changes
         run: |
           if [ -z "$(git status --short)" ]; then
-            echo "No new opportunity to commit."
+            echo "No changes."
             exit 0
           fi
+
           git config user.name "iforsa-ai-bot"
           git config user.email "actions@github.com"
+
           git add src/data/mockData.js
           git commit -m "Add daily AI job opportunity"
           git push

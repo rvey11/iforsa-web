@@ -3,15 +3,22 @@ import fs from 'node:fs/promises';
 const DATA_FILE = new URL('../src/data/mockData.js', import.meta.url);
 
 const serpApiKey = process.env.SERPAPI_API_KEY;
-const huggingfaceApiKey = process.env.HUGGINGFACE_API_KEY;
+const hfApiKey = process.env.HUGGINGFACE_API_KEY;
 
-if (!serpApiKey || !huggingfaceApiKey) {
+if (!serpApiKey || !hfApiKey) {
   console.log('Missing SERPAPI_API_KEY or HUGGINGFACE_API_KEY. Skipping.');
   process.exit(0);
 }
 
-const searchUrl = new URL('https://serpapi.com/search.json');
+const safeExit = (msg) => {
+  console.log(msg);
+  process.exit(0);
+};
 
+// --------------------
+// 1. SEARCH JOBS (SERPAPI)
+// --------------------
+const searchUrl = new URL('https://serpapi.com/search.json');
 searchUrl.searchParams.set('engine', 'google');
 searchUrl.searchParams.set(
   'q',
@@ -21,32 +28,27 @@ searchUrl.searchParams.set('hl', 'fr');
 searchUrl.searchParams.set('gl', 'ma');
 searchUrl.searchParams.set('api_key', serpApiKey);
 
-const safeExit = (message) => {
-  console.log(message);
-  process.exit(0);
-};
-
 let searchResponse;
 
 try {
   searchResponse = await fetch(searchUrl);
-} catch (error) {
-  safeExit(`SerpAPI request failed: ${error.message}`);
+} catch (err) {
+  safeExit(`SerpAPI failed: ${err.message}`);
 }
 
 if (!searchResponse.ok) {
-  safeExit(`SerpAPI failed: ${searchResponse.status}`);
+  safeExit(`SerpAPI error: ${searchResponse.status}`);
 }
 
 const searchData = await searchResponse.json();
 
 const candidates = (searchData.organic_results || [])
-  .filter((result) => result.title && result.link)
+  .filter(r => r.title && r.link)
   .slice(0, 5)
-  .map((result) => ({
-    title: result.title,
-    link: result.link,
-    snippet: result.snippet || ''
+  .map(r => ({
+    title: r.title,
+    link: r.link,
+    snippet: r.snippet || ''
   }));
 
 if (!candidates.length) {
@@ -55,22 +57,22 @@ if (!candidates.length) {
 
 const source = await fs.readFile(DATA_FILE, 'utf8');
 
-const unusedCandidates = candidates.filter(
-  (candidate) => !source.includes(candidate.link)
-);
+const unused = candidates.filter(c => !source.includes(c.link));
 
-if (!unusedCandidates.length) {
-  safeExit('All opportunities already exist.');
+if (!unused.length) {
+  safeExit('No new opportunities.');
 }
 
-const selected = unusedCandidates[0];
+const picked = unused[0];
 
+// --------------------
+// 2. PROMPT FOR HF
+// --------------------
 const prompt = `
-Create a concise Moroccan job opportunity JSON object.
-
 Return ONLY valid JSON.
 
-Format:
+Create a Moroccan job post:
+
 {
   "title": "",
   "category": "",
@@ -81,55 +83,68 @@ Format:
   "link": ""
 }
 
-Candidate:
-Title: ${selected.title}
-Snippet: ${selected.snippet}
-Link: ${selected.link}
+Use this job:
+Title: ${picked.title}
+Snippet: ${picked.snippet}
+Link: ${picked.link}
 `;
 
-let hfResponse;
-
-try {
-  hfResponse = await fetch(
-    'https://api-inference.huggingface.co/models/google/flan-t5-large',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${huggingfaceApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        inputs: prompt
-      })
-    }
-  );
-} catch (error) {
-  safeExit(`Hugging Face request failed: ${error.message}`);
-}
+// --------------------
+// 3. HUGGING FACE CALL (FIXED)
+// --------------------
+const hfResponse = await fetch(
+  'https://api-inference.huggingface.co/models/google/flan-t5-base',
+  {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${hfApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      inputs: prompt,
+      parameters: {
+        max_new_tokens: 400
+      }
+    })
+  }
+);
 
 if (!hfResponse.ok) {
-  safeExit(`Hugging Face API failed: ${hfResponse.status}`);
+  const errText = await hfResponse.text();
+  safeExit(`Hugging Face API failed: ${hfResponse.status} - ${errText}`);
 }
 
 const hfData = await hfResponse.json();
 
-const generatedText = hfData?.[0]?.generated_text;
+// HF returns different formats depending on model
+const raw =
+  hfData?.[0]?.generated_text ||
+  hfData?.generated_text ||
+  hfData?.[0]?.text ||
+  '';
 
-if (!generatedText) {
-  safeExit('No generated text returned.');
+if (!raw) {
+  safeExit('HF returned empty response.');
 }
 
+// --------------------
+// 4. PARSE JSON SAFELY
+// --------------------
 let post;
 
 try {
-  post = JSON.parse(generatedText);
+  const match = raw.match(/\{[\s\S]*\}/);
+  post = JSON.parse(match ? match[0] : raw);
 } catch {
-  safeExit('Failed to parse Hugging Face JSON.');
+  safeExit('Failed to parse JSON from HF output.');
 }
 
+// --------------------
+// 5. BUILD FINAL POST
+// --------------------
 const newPost = {
   id: Date.now(),
-  title: post.title || selected.title,
+  title: post.title || picked.title,
   category: post.category || 'Emploi',
   image:
     post.image ||
@@ -141,21 +156,21 @@ const newPost = {
   }),
   location: post.location || 'Maroc',
   trending: true,
-  description: post.description || selected.snippet,
-  requirements: post.requirements || 'Consultez l’annonce officielle.',
-  link: post.link || selected.link
+  description: post.description || picked.snippet,
+  requirements: post.requirements || 'Voir détails sur le site officiel',
+  link: post.link || picked.link
 };
 
-const postText = `\n  ${JSON.stringify(newPost, null, 2).replace(
-  /\n/g,
-  '\n  '
-)},`;
+// --------------------
+// 6. SAVE TO FILE
+// --------------------
+const postText = `\n  ${JSON.stringify(newPost, null, 2)},`;
 
-const updatedSource = source.replace(
+const updated = source.replace(
   'export const INITIAL_POSTS = [',
   `export const INITIAL_POSTS = [${postText}`
 );
 
-await fs.writeFile(DATA_FILE, updatedSource);
+await fs.writeFile(DATA_FILE, updated);
 
 console.log(`Added new opportunity: ${newPost.title}`);

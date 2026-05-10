@@ -11,6 +11,7 @@ permissions:
 jobs:
   find-job:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -24,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-            - name: Find and add opportunity
+      - name: Find and add opportunity
         run: npm run ai:find-jobs
         env:
           HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}

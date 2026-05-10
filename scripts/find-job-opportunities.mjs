@@ -1,19 +1,22 @@
 import fs from 'node:fs/promises';
-import OpenAI from 'openai';
 
 const DATA_FILE = new URL('../src/data/mockData.js', import.meta.url);
-const serpApiKey = process.env.SERPAPI_API_KEY;
-const openaiApiKey = process.env.OPENAI_API_KEY;
-const preferredModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-if (!serpApiKey || !openaiApiKey) {
-  console.log('Missing SERPAPI_API_KEY or OPENAI_API_KEY. Skipping.');
+const serpApiKey = process.env.SERPAPI_API_KEY;
+const huggingfaceApiKey = process.env.HUGGINGFACE_API_KEY;
+
+if (!serpApiKey || !huggingfaceApiKey) {
+  console.log('Missing SERPAPI_API_KEY or HUGGINGFACE_API_KEY. Skipping.');
   process.exit(0);
 }
 
 const searchUrl = new URL('https://serpapi.com/search.json');
+
 searchUrl.searchParams.set('engine', 'google');
-searchUrl.searchParams.set('q', 'site:dreamjob.ma OR site:anapec.org emploi Maroc recrutement concours opportunite');
+searchUrl.searchParams.set(
+  'q',
+  'site:dreamjob.ma OR site:anapec.org emploi Maroc recrutement concours opportunite'
+);
 searchUrl.searchParams.set('hl', 'fr');
 searchUrl.searchParams.set('gl', 'ma');
 searchUrl.searchParams.set('api_key', serpApiKey);
@@ -21,15 +24,6 @@ searchUrl.searchParams.set('api_key', serpApiKey);
 const safeExit = (message) => {
   console.log(message);
   process.exit(0);
-};
-
-const parseJsonObject = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    return match ? JSON.parse(match[0]) : null;
-  }
 };
 
 let searchResponse;
@@ -41,13 +35,14 @@ try {
 }
 
 if (!searchResponse.ok) {
-  safeExit(`SerpAPI failed: ${searchResponse.status} ${await searchResponse.text()}`);
+  safeExit(`SerpAPI failed: ${searchResponse.status}`);
 }
 
 const searchData = await searchResponse.json();
+
 const candidates = (searchData.organic_results || [])
   .filter((result) => result.title && result.link)
-  .slice(0, 8)
+  .slice(0, 5)
   .map((result) => ({
     title: result.title,
     link: result.link,
@@ -55,94 +50,112 @@ const candidates = (searchData.organic_results || [])
   }));
 
 if (!candidates.length) {
-  console.log('No search candidates found.');
-  process.exit(0);
+  safeExit('No candidates found.');
 }
 
 const source = await fs.readFile(DATA_FILE, 'utf8');
-const unusedCandidates = candidates.filter((candidate) => !source.includes(candidate.link));
+
+const unusedCandidates = candidates.filter(
+  (candidate) => !source.includes(candidate.link)
+);
 
 if (!unusedCandidates.length) {
-  console.log('All search candidates already exist in mockData.js.');
-  process.exit(0);
+  safeExit('All opportunities already exist.');
 }
 
-const client = new OpenAI({ apiKey: openaiApiKey });
-const modelsToTry = [...new Set([preferredModel, 'gpt-4o-mini'])];
-let response;
-let lastError;
+const selected = unusedCandidates[0];
 
-for (const model of modelsToTry) {
-  try {
-    response = await client.responses.create({
-      model,
-      instructions: [
-        'You create concise job-opportunity articles for iForsa, a Moroccan jobs website.',
-        'Return only valid JSON. No markdown.',
-        'Use French unless the source title is clearly Arabic.',
-        'Do not invent salary, deadlines, or application requirements that are not supported by the search result.',
-        'If details are missing, use cautious wording and direct readers to the official link.'
-      ].join('\n'),
-      input: JSON.stringify({
-        task: 'Pick the best candidate and produce one post object.',
-        schema: {
-          title: 'string',
-          category: 'Emploi | ANAPEC | Alwadifa | Immigration | Sport | Stage | France',
-          image: 'string URL',
-          location: 'string',
-          trending: true,
-          description: 'string, 1-2 sentences',
-          requirements: 'string, cautious profile/requirements',
-          link: 'string URL'
-        },
-        imageGuidance: 'Use this image if no better image is available: https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200',
-        candidates: unusedCandidates
+const prompt = `
+Create a concise Moroccan job opportunity JSON object.
+
+Return ONLY valid JSON.
+
+Format:
+{
+  "title": "",
+  "category": "",
+  "image": "",
+  "location": "",
+  "description": "",
+  "requirements": "",
+  "link": ""
+}
+
+Candidate:
+Title: ${selected.title}
+Snippet: ${selected.snippet}
+Link: ${selected.link}
+`;
+
+let hfResponse;
+
+try {
+  hfResponse = await fetch(
+    'https://api-inference.huggingface.co/models/google/flan-t5-large',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${huggingfaceApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt
       })
-    });
-    break;
-  } catch (error) {
-    lastError = error;
-    console.log(`OpenAI model ${model} failed: ${error.message}`);
-  }
+    }
+  );
+} catch (error) {
+  safeExit(`Hugging Face request failed: ${error.message}`);
 }
 
-if (!response) {
-  safeExit(`OpenAI generation failed. Last error: ${lastError?.message || 'unknown error'}`);
+if (!hfResponse.ok) {
+  safeExit(`Hugging Face API failed: ${hfResponse.status}`);
 }
 
-const rawText = response.output_text.trim();
+const hfData = await hfResponse.json();
+
+const generatedText = hfData?.[0]?.generated_text;
+
+if (!generatedText) {
+  safeExit('No generated text returned.');
+}
+
 let post;
 
 try {
-  post = parseJsonObject(rawText);
-} catch (error) {
-  safeExit(`Could not parse OpenAI JSON: ${error.message}`);
-}
-
-if (!post) {
-  safeExit('OpenAI did not return a JSON object.');
-}
-
-if (!post.title || !post.link || source.includes(post.link)) {
-  console.log('Generated post is missing required data or already exists.');
-  process.exit(0);
+  post = JSON.parse(generatedText);
+} catch {
+  safeExit('Failed to parse Hugging Face JSON.');
 }
 
 const newPost = {
   id: Date.now(),
-  title: post.title,
+  title: post.title || selected.title,
   category: post.category || 'Emploi',
-  image: post.image || 'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200',
-  date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+  image:
+    post.image ||
+    'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200',
+  date: new Date().toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }),
   location: post.location || 'Maroc',
   trending: true,
-  description: post.description,
-  requirements: post.requirements,
-  link: post.link
+  description: post.description || selected.snippet,
+  requirements: post.requirements || 'Consultez l’annonce officielle.',
+  link: post.link || selected.link
 };
 
-const postText = `\n  ${JSON.stringify(newPost, null, 2).replace(/\n/g, '\n  ')},`;
-const updatedSource = source.replace('export const INITIAL_POSTS = [', `export const INITIAL_POSTS = [${postText}`);
+const postText = `\n  ${JSON.stringify(newPost, null, 2).replace(
+  /\n/g,
+  '\n  '
+)},`;
+
+const updatedSource = source.replace(
+  'export const INITIAL_POSTS = [',
+  `export const INITIAL_POSTS = [${postText}`
+);
 
 await fs.writeFile(DATA_FILE, updatedSource);
+
 console.log(`Added new opportunity: ${newPost.title}`);

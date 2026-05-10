@@ -3,10 +3,10 @@ import fs from 'node:fs/promises';
 const DATA_FILE = new URL('../src/data/mockData.js', import.meta.url);
 
 const SERP_API_KEY = process.env.SERPAPI_API_KEY;
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-if (!SERP_API_KEY || !HF_API_KEY) {
-  console.log('Missing SERPAPI_API_KEY or HUGGINGFACE_API_KEY. Skipping.');
+if (!SERP_API_KEY || !GROQ_API_KEY) {
+  console.log('Missing SERPAPI_API_KEY or GROQ_API_KEY. Skipping.');
   process.exit(0);
 }
 
@@ -16,7 +16,7 @@ const safeExit = (msg) => {
 };
 
 // --------------------
-// 1. SEARCH JOBS (SERPAPI)
+// 1. SERPAPI SEARCH
 // --------------------
 const searchUrl = new URL('https://serpapi.com/search.json');
 searchUrl.searchParams.set('engine', 'google');
@@ -69,7 +69,7 @@ if (!unused.length) {
 const picked = unused[0];
 
 // --------------------
-// 3. PROMPT
+// 3. GROQ AI GENERATION
 // --------------------
 const prompt = `
 Return ONLY valid JSON.
@@ -92,51 +92,46 @@ Snippet: ${picked.snippet}
 Link: ${picked.link}
 `;
 
-// --------------------
-// 4. HUGGING FACE CALL (FIXED ENDPOINT)
-// --------------------
-const hfResponse = await fetch(
-  'https://api-inference.huggingface.co/models/google/flan-t5-base',
+const groqResponse = await fetch(
+  'https://api.groq.com/openai/v1/chat/completions',
   {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${HF_API_KEY}`,
+      Authorization: `Bearer ${GROQ_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      inputs: prompt,
-      options: {
-        wait_for_model: true
-      },
-      parameters: {
-        max_new_tokens: 300
-      }
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        {
+          role: 'system',
+          content: 'Return ONLY valid JSON. No markdown. No explanation.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7
     })
   }
 );
 
-if (!hfResponse.ok) {
-  const errText = await hfResponse.text();
-  safeExit(`Hugging Face API failed: ${hfResponse.status} - ${errText}`);
+if (!groqResponse.ok) {
+  const err = await groqResponse.text();
+  safeExit(`Groq API failed: ${groqResponse.status} - ${err}`);
 }
 
-const hfData = await hfResponse.json();
+const data = await groqResponse.json();
 
-// --------------------
-// 5. EXTRACT OUTPUT
-// --------------------
-const raw =
-  hfData?.[0]?.generated_text ||
-  hfData?.generated_text ||
-  hfData?.[0]?.text ||
-  '';
+const raw = data?.choices?.[0]?.message?.content;
 
 if (!raw) {
-  safeExit('Empty response from Hugging Face.');
+  safeExit('Groq returned empty response.');
 }
 
 // --------------------
-// 6. PARSE JSON SAFELY
+// 4. PARSE JSON
 // --------------------
 let post;
 
@@ -144,11 +139,11 @@ try {
   const match = raw.match(/\{[\s\S]*\}/);
   post = JSON.parse(match ? match[0] : raw);
 } catch {
-  safeExit('Failed to parse JSON from model output.');
+  safeExit('Failed to parse Groq JSON.');
 }
 
 // --------------------
-// 7. BUILD FINAL POST
+// 5. BUILD FINAL POST
 // --------------------
 const newPost = {
   id: Date.now(),
@@ -170,7 +165,7 @@ const newPost = {
 };
 
 // --------------------
-// 8. SAVE TO FILE
+// 6. SAVE TO FILE
 // --------------------
 const postText = `\n  ${JSON.stringify(newPost, null, 2)},`;
 

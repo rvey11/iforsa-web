@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778427721306,
+  "title": "A la une - Dreamjob.ma",
+  "category": "Emploi",
+  "image": "https://www.dreamjob.ma/wp-content/uploads/2024/12/Logo-Dreamjob-300x300.jpg",
+  "date": "10 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Liste des Convoqués Concours ONEE Branche Electricité 2026 (428 Postes) · ONEE ONEP Concours Emploi Recrutement ; LabelVie ouvre 20 postes à saisir dans plusieurs...",
+  "requirements": "Pas de données disponibles",
+  "link": "https://www.dreamjob.ma/a-la-une/"
+},
+  {
   "id": 1778418990279,
   "title": "Emploi Public Maroc et Concours",
   "category": "Emploi Public",

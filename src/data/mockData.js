@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778531132093,
+  "title": "Atlas Multiservices Concours Emploi et Recrutement",
+  "category": "Employment",
+  "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200",
+  "date": "11 mai 2026",
+  "location": "Morocco",
+  "trending": true,
+  "description": "Atlas Multiservices recrute. Retrouvez sur cette page tous les Concours, Offres d'Emploi et Annonces de Recrutement de Atlas Multiservices - Dreamjob.ma.",
+  "requirements": "Voir détails sur site officiel",
+  "link": "https://www.dreamjob.ma/emploi/atlas-multiservices-recrute/"
+},
+  {
   "id": 1778434661014,
   "title": "Emploi à l'International",
   "category": "International",

@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778617294699,
+  "title": "Concours de Recrutement Poste Maroc 2026 (10 animateurs)",
+  "category": "emploi-public",
+  "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200",
+  "date": "12 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Être titulaire d'un Bac+2, d'un diplôme de Technicien Spécialisé, BTS, DUT en commerce ou d'un diplôme équivalent. · Justifier d'une première expérience professionnelle dans le domaine de l'animation.",
+  "requirements": "Bac+2, Technicien Spécialisé, BTS, DUT en commerce ou diplôme équivalent, expérience professionnelle dans l'animation",
+  "link": "https://www.dreamjob.ma/emploi-public/concours-de-recrutement-poste-maroc-2026-10-animateurs/"
+},
+  {
   "id": 1778531132093,
   "title": "Atlas Multiservices Concours Emploi et Recrutement",
   "category": "Employment",

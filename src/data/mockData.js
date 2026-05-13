@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778703835716,
+  "title": "EMPLOI-PUBLIC - Page d'accueil",
+  "category": "Finance, comptabilité, Encaissement, Police Ferroviaire, Capitainerie",
+  "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200",
+  "date": "13 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Dernière chance pour postuler · Agent de maîtrise en Finance et comptabilité · Encaisseur · Opérateur Police Ferroviaire · Agents de Capitainerie. 2 jours ...",
+  "requirements": "Voir détails sur site officiel",
+  "link": "https://www.emploi-public.ma/fr/"
+},
+  {
   "id": 1778617294699,
   "title": "Concours de Recrutement Poste Maroc 2026 (10 animateurs)",
   "category": "emploi-public",

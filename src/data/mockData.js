@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778790012110,
+  "title": "ONCF Concours, Emploi et Recrutement",
+  "category": "Transportation",
+  "image": "https://www.dreamjob.ma/wp-content/uploads/2022/01/ONCF.jpg",
+  "date": "14 mai 2026",
+  "location": "Rabat, Morocco",
+  "trending": true,
+  "description": "L'ONCF recrute. Retrouvez sur cette page tous les concours, offres d'emploi et annonces de recrutement de l'Office National des Chemins de Fer.",
+  "requirements": "Not specified",
+  "link": "https://www.dreamjob.ma/emploi/oncf-emploi-et-recrutement/"
+},
+  {
   "id": 1778703835716,
   "title": "EMPLOI-PUBLIC - Page d'accueil",
   "category": "Finance, comptabilité, Encaissement, Police Ferroviaire, Capitainerie",

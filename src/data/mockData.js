@@ -1,5 +1,17 @@
 export const INITIAL_POSTS = [
   {
+  "id": 1778875532851,
+  "title": "Emploi Secteur Privé",
+  "category": "Privé",
+  "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200",
+  "date": "15 mai 2026",
+  "location": "Maroc",
+  "trending": true,
+  "description": "Retrouvez sur cette page toutes les offres d'emploi et annonces de recrutement du secteur privé au Maroc. Opportunités chez DACHSER Maroc à Tanger, postulez ...",
+  "requirements": "Voir détails sur site officiel",
+  "link": "https://www.dreamjob.ma/emploi-secteur-prive/"
+},
+  {
   "id": 1778790012110,
   "title": "ONCF Concours, Emploi et Recrutement",
   "category": "Transportation",
